@@ -20,8 +20,7 @@ def analyze(directories):
     characters = Counter()
     symbols = Counter()
     for directory in directories:
-        files = list(Path(directory).rglob('*.c')) + list(Path(directory).rglob('*.cc')) + list(Path(directory).rglob('*.cpp'))
-        for path in files:
+        for path in Path(directory).rglob('*.rb'):
             with open(path, 'r') as stream:
                 payload = stream.read()
             _analyze(payload, characters, symbols)
