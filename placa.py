@@ -26,13 +26,3 @@ language = languages[args.language]
 print(f'Analyzing {language.name} files from {", ".join(args.directories)}')
 
 languages[args.language].analyze(args.directories)
-
-
-{}[]()
-#$%*@!~`
-:;
-=<>
-+-_
-\|/
-,.
-'"
