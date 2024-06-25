@@ -1,32 +1,37 @@
 from pathlib import Path
 from collections import Counter
 import re
-from nltk import ngrams
 from tabulate import tabulate
 from itertools import groupby
 
 
-def _analyze(payload, expressions, words):
+def _analyze(payload, expressions, words, names):
     lines = payload.split('\n')
     for line in lines:
         compressed_line = line.strip()
         compressed_line = re.sub(r'\d', "1", compressed_line)
-        compressed_line = re.sub(r'([A-Z]\w+)+', "C", compressed_line)
-        compressed_line = re.sub(r'[a-z_]\w+', lambda x: replace_string(x, words), compressed_line)
-        compressed_line = re.sub(r"\'[\w \t]*\'", "'v'", compressed_line)
-        compressed_line = "".join([key for key, _group in groupby(compressed_line)])
+        compressed_line = re.sub(r'([A-Z]\w+)+', lambda x: replace_name(x, names), compressed_line)
+        compressed_line = re.sub(r'[a-z_]\w+', lambda x: replace_word(x, words), compressed_line)
+        compressed_line = re.sub(r"\'[\w \t]*\'", "'S'", compressed_line)
+        compressed_line = "".join([key for key, _group in groupby(compressed_line).replace("clas", "class")])
 
         if syntax_relevant(compressed_line):
             expressions[compressed_line] += 1
 
 
-def replace_string(match, words):
+def replace_word(match, words):
     string = match.group()
     reserved_words = ["class", "module", "do", "map", "expect", "to", "eq", "def", "end"]
     if string in reserved_words:
         return string
     words[string] += 1
-    return "v"
+    return "S"
+
+
+def replace_name(match, names):
+    string = match.group()
+    names[string] += 1
+    return "N"
 
 
 def syntax_relevant(gram):
@@ -36,19 +41,20 @@ def syntax_relevant(gram):
 def analyze(directories):
     expressions = Counter()
     words = Counter()
+    names = Counter()
     for directory in directories:
         files = list(Path(directory).rglob('*.rb'))
         for path in files:
             with open(path, 'r') as stream:
                 payload = stream.read()
-            _analyze(payload, expressions, words)
-    present(expressions, words)
-    return expressions
+            _analyze(payload, expressions, words, names)
+    present(expressions, words, names)
 
 
-def present(expressions, words):
+def present(expressions, words, names):
     present_counter(expressions, "ruby-expressions.txt", 25)
     present_counter(words, "ruby-words.txt", 100)
+    present_counter(names, "ruby-names.txt", 100)
 
 
 def present_counter(counter, filename, amount):
