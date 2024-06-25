@@ -16,7 +16,7 @@ languages = {
 }
 
 
-options = argparse.ArgumentParser(description='placa: source code character frequency analysis')
+options = argparse.ArgumentParser(description='analyze: analyze frequency of code expressions by line')
 options.add_argument('-l', '--language', action='store', choices=languages.keys())
 options.add_argument('directories', nargs=argparse.REMAINDER)
 
@@ -26,3 +26,5 @@ language = languages[args.language]
 print(f'Analyzing {language.name} files from {", ".join(args.directories)}')
 
 languages[args.language].analyze(args.directories)
+
+
