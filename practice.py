@@ -14,9 +14,6 @@ def getch():
     try:
         tty.setraw(sys.stdin.fileno())
         ch = sys.stdin.read(1)
-    except Exception as e:
-        sys.stdout.write(e)
-        sys.stdout.flush()
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return ch
@@ -28,31 +25,39 @@ def read_generator_file(filename):
         return [line.strip() for line in lines if not line.startswith("#")]
 
 
-def start(expressions_filename, words_filename):
+def start(expressions_filename, words_filename, challenges=25):
     generator_expressions = read_generator_file(expressions_filename)
     generator_words = read_generator_file(words_filename)
 
-    for i in range(10):
+    for i in range(challenges):
         challenge_string = generate_challenge_string(generator_expressions, generator_words)
         text = colored(challenge_string, "light_grey")
         sys.stdout.write(text + "\r")
         sys.stdout.flush()
         pos = 0
+        status = [False] * len(challenge_string)
         while True:
             char = getch()
-            print("")
-            if isinstance(char, str):
-                print(f"char is a str {char.encode("utf-8")}")
-            if char.encode("utf-8") == "b'\x7f'":
-                sys.stdout.write("\b")
-                pos -= 1
+            if char == "\x03":
+                sys.exit(1)
+            if char == "\x7f":
+                if pos > 0:
+                    pos -= 1
+                sys.stdout.write(f"\b{colored(challenge_string[pos], "light_grey")}\b")
             elif char == challenge_string[pos]:
                 sys.stdout.write(colored(char, "green"))
+                status[pos] = True
                 pos += 1
             else:
                 sys.stdout.write(colored(challenge_string[pos], "red"))
                 pos += 1
             sys.stdout.flush()
+            if pos == len(challenge_string):
+                if all(st for st in status):
+                    print(colored(" ✓", "green"))
+                else:
+                    print(colored(" x", "red"))
+                break
 
 
 def generate_challenge_string(generator_expressions, generator_words):
