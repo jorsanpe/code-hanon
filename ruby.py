@@ -12,8 +12,9 @@ def _analyze(payload, expressions, words, names):
         compressed_line = re.sub(r'\d', "1", compressed_line)
         compressed_line = re.sub(r'([A-Z]\w+)+', lambda x: replace_name(x, names), compressed_line)
         compressed_line = re.sub(r'[a-z_]\w+', lambda x: replace_word(x, words), compressed_line)
-        compressed_line = re.sub(r"\'[\w \t]*\'", "'S'", compressed_line)
-        compressed_line = "".join([key for key, _group in groupby(compressed_line).replace("clas", "class")])
+        compressed_line = re.sub(r"\'[\w \t]*\'", "'W'", compressed_line)
+        compressed_line = "".join([key for key, _group in groupby(compressed_line)])
+        compressed_line = compressed_line.replace("clas", "class")
 
         if syntax_relevant(compressed_line):
             expressions[compressed_line] += 1
@@ -21,11 +22,11 @@ def _analyze(payload, expressions, words, names):
 
 def replace_word(match, words):
     string = match.group()
-    reserved_words = ["class", "module", "do", "map", "expect", "to", "eq", "def", "end"]
+    reserved_words = ["class", "module", "do", "map", "expect", "to", "eq", "def", "end", "if", "it", "require"]
     if string in reserved_words:
         return string
     words[string] += 1
-    return "S"
+    return "W"
 
 
 def replace_name(match, names):
@@ -52,9 +53,9 @@ def analyze(directories):
 
 
 def present(expressions, words, names):
-    present_counter(expressions, "ruby-expressions.txt", 25)
-    present_counter(words, "ruby-words.txt", 100)
-    present_counter(names, "ruby-names.txt", 100)
+    present_counter(expressions, "expressions.txt", 25)
+    present_counter(words, "words.txt", 100)
+    present_counter(names, "names.txt", 100)
 
 
 def present_counter(counter, filename, amount):

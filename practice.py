@@ -39,13 +39,12 @@ class Statistics:
         print("Statistics")
         total_strokes = self.valid_strokes + self.invalid_strokes
         rows = [
-            [" Total time (s)", "%.2f" % self.total_time],
+            [" Strokes per minute", "%.2f" % ((total_strokes * 60) / self.total_time)],
+            [" Accuracy", "%.2f %%" % ((float(self.valid_strokes) * 100) / total_strokes)],
+            [" Total strokes", "%d" % total_strokes],
             [" Valid strokes", "%d" % self.valid_strokes],
             [" Invalid strokes", "%d" % self.invalid_strokes],
-            [" Total strokes", "%d" % total_strokes],
-            [" Time between strokes (s)", "%.2f" % (self.total_time / total_strokes)],
-            [" Strokes per minute", "%.2f" % ((total_strokes * 60) / self.total_time)],
-            [" Accuracy", "%.2f %%" % ((float(self.valid_strokes) * 100) / total_strokes)]
+            [" Total time (s)", "%.2f" % self.total_time],
         ]
         print(tabulate(rows))
 
@@ -67,13 +66,13 @@ def read_generator_file(filename):
         return [line.strip() for line in lines if not line.startswith("#")]
 
 
-def start(expressions_filename, words_filename, names_filename, challenges=5):
+def start(expressions_filename, words_filename, names_filename, count):
     generator_expressions = read_generator_file(expressions_filename)
     generator_words = read_generator_file(words_filename)
     generator_names = read_generator_file(names_filename)
     stats = Statistics()
 
-    for i in range(challenges):
+    for i in range(count):
         challenge_string = generate_challenge_string(generator_expressions, generator_words, generator_names)
         text = colored(challenge_string, "light_grey")
         sys.stdout.write(text + "\r")
@@ -111,7 +110,7 @@ def start(expressions_filename, words_filename, names_filename, challenges=5):
 
 def generate_challenge_string(generator_expressions, generator_words, generator_names):
     generator = random.sample(generator_expressions, 1)[0]
-    expression = re.sub(r'S', lambda x: random.sample(generator_words, 1)[0], generator)
+    expression = re.sub(r'W', lambda x: random.sample(generator_words, 1)[0], generator)
     expression = re.sub(r'N', lambda x: random.sample(generator_names, 1)[0], expression)
     expression = re.sub(r'1', lambda x: str(random.randint(0, 99)), expression)
     return expression
@@ -121,6 +120,7 @@ options = argparse.ArgumentParser(description='practice coding based on generato
 options.add_argument('-e', '--expressions-file', action='store')
 options.add_argument('-w', '--words-file', action='store')
 options.add_argument('-n', '--names-file', action='store')
+options.add_argument('-c', '--count', default=25, action='store', type=int)
 
 args = options.parse_args()
-start(args.expressions_file, args.words_file, args.names_file)
+start(args.expressions_file, args.words_file, args.names_file, int(args.count))

@@ -20,6 +20,7 @@ def _analyze(payload, characters, symbols, grams):
             if not any(char.isalpha() for char in gram) and not any(char == ' ' for char in gram):
                 grams[gram] += 1
 
+
 def analyze(directories):
     characters = Counter()
     symbols = Counter()
