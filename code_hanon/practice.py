@@ -12,23 +12,42 @@ from tabulate import tabulate
 
 
 @dataclass
-class Statistics:
+class PracticeSession:
     before: float
     valid_strokes: int = 0
     invalid_strokes: int = 0
     total_time: float = 0
 
-    def __init__(self):
+    def __init__(self, input_directory):
         self.before = perf_counter()
+        self.generator_expressions = self.read_generator_file(f"{input_directory}/expressions.txt")
+        self.generator_words = self.read_generator_file(f"{input_directory}/words.txt")
+        self.generator_names = self.read_generator_file(f"{input_directory}/names.txt")
 
-    def valid(self):
+    def read_generator_file(self, filename):
+        try:
+            with open(filename, "r") as stream:
+                lines = stream.readlines()
+                return [line.strip() for line in lines if not line.startswith("#")]
+        except FileNotFoundError:
+            print(f"Error: The file '{filename}' was not found in the input directory")
+            sys.exit(1)
+
+    def generate_challenge_string(self):
+        generator = random.sample(self.generator_expressions, 1)[0]
+        expression = re.sub(r'W', lambda x: random.sample(self.generator_words, 1)[0], generator)
+        expression = re.sub(r'N', lambda x: random.sample(self.generator_names, 1)[0], expression)
+        expression = re.sub(r'1', lambda x: str(random.randint(0, 99)), expression)
+        return expression
+
+    def valid_input(self):
         now = perf_counter()
         elapsed_time = now - self.before
         self.total_time += elapsed_time
         self.before = now
         self.valid_strokes += 1
 
-    def invalid(self):
+    def invalid_input(self):
         now = perf_counter()
         elapsed_time = now - self.before
         self.total_time += elapsed_time
@@ -60,20 +79,11 @@ def getch():
     return ch
 
 
-def read_generator_file(filename):
-    with open(filename, "r") as stream:
-        lines = stream.readlines()
-        return [line.strip() for line in lines if not line.startswith("#")]
-
-
-def start(expressions_filename, words_filename, names_filename, count):
-    generator_expressions = read_generator_file(expressions_filename)
-    generator_words = read_generator_file(words_filename)
-    generator_names = read_generator_file(names_filename)
-    stats = Statistics()
+def start(input_directory, count):
+    session = PracticeSession(input_directory)
 
     for i in range(count):
-        challenge_string = generate_challenge_string(generator_expressions, generator_words, generator_names)
+        challenge_string = session.generate_challenge_string()
         text = colored(challenge_string, "light_grey")
         sys.stdout.write(text + "\r")
         sys.stdout.flush()
@@ -87,16 +97,16 @@ def start(expressions_filename, words_filename, names_filename, count):
             if char == "\x7f":
                 if pos > 0:
                     pos -= 1
-                sys.stdout.write(f"\b{colored(challenge_string[pos], "light_grey")}\b")
+                    sys.stdout.write(f"\b{colored(challenge_string[pos], "light_grey")}\b")
             elif char == challenge_string[pos]:
                 sys.stdout.write(colored(char, "green"))
                 ok_chars[pos] = True
                 pos += 1
-                stats.valid()
+                session.valid_input()
             else:
                 sys.stdout.write(colored(challenge_string[pos], "red"))
                 pos += 1
-                stats.invalid()
+                session.invalid_input()
             sys.stdout.flush()
 
             if pos == len(challenge_string):
@@ -105,22 +115,4 @@ def start(expressions_filename, words_filename, names_filename, count):
                 else:
                     print(colored(" x", "red"))
                 break
-    stats.print()
-
-
-def generate_challenge_string(generator_expressions, generator_words, generator_names):
-    generator = random.sample(generator_expressions, 1)[0]
-    expression = re.sub(r'W', lambda x: random.sample(generator_words, 1)[0], generator)
-    expression = re.sub(r'N', lambda x: random.sample(generator_names, 1)[0], expression)
-    expression = re.sub(r'1', lambda x: str(random.randint(0, 99)), expression)
-    return expression
-
-
-options = argparse.ArgumentParser(description='practice coding based on generator expressions')
-options.add_argument('-e', '--expressions-file', action='store')
-options.add_argument('-w', '--words-file', action='store')
-options.add_argument('-n', '--names-file', action='store')
-options.add_argument('-c', '--count', default=25, action='store', type=int)
-
-args = options.parse_args()
-start(args.expressions_file, args.words_file, args.names_file, int(args.count))
+    session.print()

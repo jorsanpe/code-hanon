@@ -1,2 +1,5 @@
 *.pyc
 .idea/
+exercises/**/expressions.txt
+exercises/**/names.txt
+exercises/**/words.txt

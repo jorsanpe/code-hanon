@@ -1,2 +1,2 @@
-# placa
-Programming Language Character Frequency Analysis
+# Code Hanon
+A program for generating custom code typing exercises
