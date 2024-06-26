@@ -8,67 +8,99 @@ from collections import Counter
 from time import perf_counter
 from termcolor import colored
 from tabulate import tabulate
+from code_hanon import statistics_repository
 
 
 class SessionStatistics:
     def __init__(self):
         self.valid_strokes = 0
         self.invalid_strokes = 0
-        self.total_time = 0.0
+        self.total_time_per_char = 0.0
         self.challenge_start = perf_counter()
-        self.challenge_end = 0
         self.before = perf_counter()
         self.ok_chars = []
+        self.latency_per_char = []
         self.failed_3grams = Counter()
         self.failed_expressions = Counter()
+        self.valid_3grams = Counter()
+        self.valid_expressions = Counter()
+        self.latency_3grams = Counter()
         self.challenge_string = None
         self.generator_expression = None
-        self.previous_input_ok = True
+        self.challenge_ok = True
 
     def start(self, generator_expression, challenge_string):
         self.challenge_start = perf_counter()
         self.before = perf_counter()
         self.challenge_string = challenge_string
         self.generator_expression = generator_expression
-        self.ok_chars = [False] * len(challenge_string)
+        self.ok_chars = [None] * len(challenge_string)
+        self.latency_per_char = [0] * len(challenge_string)
+        self.challenge_ok = True
 
     def valid_input(self, pos):
         now = perf_counter()
         elapsed_time = now - self.before
-        self.total_time += elapsed_time
         self.before = now
+        self.total_time_per_char += elapsed_time
+        self.latency_per_char[pos] = elapsed_time
         self.valid_strokes += 1
-        self.previous_input_ok = True
+        if self.ok_upto(pos):
+            self.valid_3grams[self.ngram_at(pos)] += 1
+            self.latency_3grams[self.ngram_at(pos)] += int(self.latency_at(pos) * 1000)
+        if self.ok_chars[pos] is None:
+            self.ok_chars[pos] = True
 
     def invalid_input(self, pos):
         now = perf_counter()
-        elapsed_time = now - self.before
-        self.total_time += elapsed_time
+        self.total_time_per_char += now - self.before
         self.before = now
         self.invalid_strokes += 1
-        if self.previous_input_ok:
-            self.failed_3grams[(self.at(pos), self.at(pos - 1), self.at(pos-2))] += 1
-        self.previous_input_ok = False
+        if self.ok_upto(pos):
+            self.failed_3grams[self.ngram_at(pos)] += 1
+        if self.ok_chars[pos] is None:
+            self.ok_chars[pos] = False
+        self.challenge_ok = False
+
+    def latency_upto(self, pos):
+        return self.latency_at(pos-2) + self.latency_at(pos-1) + self.latency_at(pos)
+
+    def latency_at(self, pos):
+        return self.latency_per_char[pos] if pos > 0 else 0
+
+    def ok_upto(self, pos):
+        return self.ok_at(pos-2) and self.ok_at(pos-1)
+
+    def ok_at(self, pos):
+        return self.ok_chars[pos] if pos > 0 else True
+
+    def ngram_at(self, pos):
+        return tuple([self.at(pos - 2), self.at(pos - 1), self.at(pos)])
 
     def at(self, pos):
         return self.challenge_string[pos] if pos > 0 else "$"
 
-    def challenge_failed(self):
-        self.challenge_end = perf_counter()
-        self.failed_3grams[self.generator_expression] += 1
+    def challenge_end(self):
+        now = perf_counter()
+        if self.challenge_ok:
+            self.valid_expressions[self.generator_expression] += 1
+        else:
+            self.failed_expressions[self.generator_expression] += 1
 
     def print(self):
         print("Statistics")
         total_strokes = self.valid_strokes + self.invalid_strokes
-        worst_sequences = ["".join(ngram[0]) for ngram in self.failed_3grams.most_common(2)]
+        worst_sequences = [f'"{"".join(ngram[0])}"' for ngram in self.failed_3grams.most_common(2)]
+        worst_expressions = [f'"{"".join(expression[0])}"' for expression in self.failed_expressions.most_common(2)]
         rows = [
-            [" Strokes per minute", "%.2f" % ((total_strokes * 60) / self.total_time)],
+            [" Strokes per minute", "%.2f" % ((total_strokes * 60) / self.total_time_per_char)],
             [" Accuracy", "%.2f %%" % ((float(self.valid_strokes) * 100) / total_strokes)],
             [" Total strokes", "%d" % total_strokes],
             [" Valid strokes", "%d" % self.valid_strokes],
             [" Invalid strokes", "%d" % self.invalid_strokes],
-            [" Worst sequences", f"{"|".join(worst_sequences)}"],
-            [" Total time (s)", "%.2f" % self.total_time],
+            [" Worst sequences", f"{", ".join(worst_sequences)}"],
+            [" Worst expressions", f"{", ".join(worst_expressions)}"],
+            [" Total time (s)", "%.2f" % self.total_time_per_char],
         ]
         print(tabulate(rows))
 
@@ -101,8 +133,11 @@ class PracticeSession:
         self.statistics.start(generator_expression, challenge_string)
         return challenge_string
 
-    def challenge_failed(self):
-        self.statistics.challenge_failed()
+    def challenge_ok(self):
+        return self.statistics.challenge_ok
+
+    def challenge_end(self):
+        self.statistics.challenge_end()
 
     def valid_input(self, pos):
         self.statistics.valid_input(pos)
@@ -110,19 +145,9 @@ class PracticeSession:
     def invalid_input(self, pos):
         self.statistics.invalid_input(pos)
 
-    def print(self):
+    def finish(self):
         self.statistics.print()
-        # print("Statistics")
-        # total_strokes = self.valid_strokes + self.invalid_strokes
-        # rows = [
-        #     [" Strokes per minute", "%.2f" % ((total_strokes * 60) / self.total_time)],
-        #     [" Accuracy", "%.2f %%" % ((float(self.valid_strokes) * 100) / total_strokes)],
-        #     [" Total strokes", "%d" % total_strokes],
-        #     [" Valid strokes", "%d" % self.valid_strokes],
-        #     [" Invalid strokes", "%d" % self.invalid_strokes],
-        #     [" Total time (s)", "%.2f" % self.total_time],
-        # ]
-        # print(tabulate(rows))
+        statistics_repository.update_statistics(self.statistics)
 
 
 def getch():
@@ -137,6 +162,7 @@ def getch():
 
 
 def start(input_directory, count):
+    statistics_repository.migrate()
     session = PracticeSession(input_directory)
 
     for i in range(count):
@@ -167,10 +193,10 @@ def start(input_directory, count):
             sys.stdout.flush()
 
             if pos == len(challenge_string):
-                if all(st for st in ok_chars):
+                if session.challenge_ok():
                     print(colored(" ✓", "green"))
                 else:
-                    session.challenge_failed()
                     print(colored(" x", "red"))
+                session.challenge_end()
                 break
-    session.print()
+    session.finish()
