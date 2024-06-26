@@ -5,6 +5,7 @@ import re
 from tabulate import tabulate
 from itertools import groupby
 from code_hanon import languages
+import functools
 
 
 class Analysis:
@@ -21,7 +22,7 @@ def analyze(language, directories, output):
 
     analysis = Analysis(language)
     for directory in directories:
-        files = list(Path(directory).rglob('*.rb'))
+        files = functools.reduce(lambda v, e: v + list(Path(directory).rglob(e)), analysis.extensions, [])
         for path in files:
             with open(path, 'r') as stream:
                 payload = stream.read()
@@ -46,7 +47,7 @@ def _analyze(payload, analysis):
 
 def _replace_word(match, analysis):
     string = match.group()
-    reserved_words = ["class", "module", "do", "map", "expect", "to", "eq", "def", "end", "if", "it", "require"]
+    reserved_words = analysis.reserved_words
     if string in reserved_words:
         return string
     analysis.words[string] += 1
