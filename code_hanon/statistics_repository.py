@@ -1,7 +1,10 @@
 import sqlite3
+import time
 
 
-DATABASE_FILENAME = ".statistics.db"
+DATABASE_FILENAME = "statistics/statistics.db"
+FAILED = "KO"
+VALID = "OK"
 
 
 def migrate():
@@ -10,23 +13,24 @@ def migrate():
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS ngrams("
         " ngram TEXT,"
-        " total INTEGER DEFAULT 0,"
-        " mistakes INTEGER DEFAULT 0,"
-        " PRIMARY KEY(ngram)"
+        " status TEXT,"
+        " value INTEGER DEFAULT 0,"
+        " timestamp INTEGER"
         ")"
     )
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS expressions("
         " expression TEXT,"
-        " total INTEGER DEFAULT 0,"
-        " mistakes INTEGER DEFAULT 0,"
-        " PRIMARY KEY(expression)"
+        " status TEXT,"
+        " value INTEGER DEFAULT 0,"
+        " timestamp INTEGER"
         ")"
     )
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS latencies("
         " ngram TEXT,"
-        " latency INTEGER DEFAULT 0"
+        " value INTEGER DEFAULT 0,"
+        " timestamp INTEGER"
         ")"
     )
 
@@ -35,58 +39,36 @@ def update_statistics(statistics):
     connection = sqlite3.connect(DATABASE_FILENAME)
     cursor = connection.cursor()
     for ngram in statistics.failed_3grams.most_common():
-        _fail(cursor, ngram, "ngram")
+        _insert(cursor, ngram, "ngram", FAILED)
     for expression in statistics.failed_expressions.most_common():
-        _fail(cursor, expression, "expression")
+        _insert(cursor, expression, "expression", FAILED)
     for ngram in statistics.valid_3grams.most_common():
-        _valid(cursor, ngram, "ngram")
+        _insert(cursor, ngram, "ngram", VALID)
     for expression in statistics.valid_expressions.most_common():
-        _valid(cursor, expression, "expression")
+        _insert(cursor, expression, "expression", VALID)
     for latency in statistics.latency_3grams.most_common():
-        _latency(cursor, latency)
+        _insert_latency(cursor, latency)
     connection.commit()
     connection.close()
 
 
-def _fail(cursor, element, root):
+def _insert(cursor, element, root, status):
+    timestamp = int(time.time())
     expression_id = "".join(element[0])
     if expression_id.startswith("$$"):
         return
-    row = cursor.execute(f"SELECT * FROM {root}s WHERE {root} = ?", [expression_id]).fetchone()
-    if row:
-        cursor.execute(
-            f"UPDATE {root}s SET total = ?, mistakes = ? WHERE {root} = ?",
-            [int(row[1]) + element[1], int(row[2]) + element[1], expression_id]
-        )
-    else:
-        cursor.execute(
-            f"INSERT INTO {root}s ({root}, total, mistakes) VALUES (?, ?, ?)",
-            [expression_id, element[1], element[1]]
-        )
+    cursor.execute(
+        f"INSERT INTO {root}s ({root}, status, value, timestamp) VALUES (?, ?, ?, ?)",
+        [expression_id, status, element[1], timestamp]
+    )
 
 
-def _valid(cursor, element, root):
-    expression_id = "".join(element[0])
-    if expression_id.startswith("$$"):
-        return
-    row = cursor.execute(f"SELECT * FROM {root}s WHERE {root} = ?", [expression_id]).fetchone()
-    if row:
-        cursor.execute(
-            f"UPDATE {root}s SET total = ? WHERE {root} = ?",
-            [int(row[1]) + element[1], expression_id]
-        )
-    else:
-        cursor.execute(
-            f"INSERT INTO {root}s ({root}, total) VALUES (?, ?)",
-            [expression_id, element[1]]
-        )
-
-
-def _latency(cursor, latency):
+def _insert_latency(cursor, latency):
     ngram_id = "".join(latency[0])
+    timestamp = int(time.time())
     if ngram_id.startswith("$$"):
         return
     cursor.execute(
-        f"INSERT INTO latencies (ngram, latency) VALUES (?, ?)",
+        f"INSERT INTO latencies (ngram, value, timestamp) VALUES (?, ?, ?)",
         [ngram_id, latency[1]]
     )

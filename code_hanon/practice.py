@@ -45,21 +45,21 @@ class SessionStatistics:
         self.total_time_per_char += elapsed_time
         self.latency_per_char[pos] = elapsed_time
         self.valid_strokes += 1
-        if self.ok_upto(pos):
-            self.valid_3grams[self.ngram_at(pos)] += 1
-            self.latency_3grams[self.ngram_at(pos)] += int(self.latency_at(pos) * 1000)
         if self.ok_chars[pos] is None:
             self.ok_chars[pos] = True
+        if self.ok_including(pos):
+            self.valid_3grams[self.ngram_at(pos)] += 1
+            self.latency_3grams[self.ngram_at(pos)] += int(self.latency_at(pos) * 1000)
 
     def invalid_input(self, pos):
         now = perf_counter()
         self.total_time_per_char += now - self.before
         self.before = now
         self.invalid_strokes += 1
-        if self.ok_upto(pos):
-            self.failed_3grams[self.ngram_at(pos)] += 1
         if self.ok_chars[pos] is None:
             self.ok_chars[pos] = False
+        if self.ok_upto(pos):
+            self.failed_3grams[self.ngram_at(pos)] += 1
         self.challenge_ok = False
 
     def latency_upto(self, pos):
@@ -70,6 +70,9 @@ class SessionStatistics:
 
     def ok_upto(self, pos):
         return self.ok_at(pos-2) and self.ok_at(pos-1)
+
+    def ok_including(self, pos):
+        return self.ok_at(pos-2) and self.ok_at(pos-1) and self.ok_at(pos)
 
     def ok_at(self, pos):
         return self.ok_chars[pos] if pos > 0 else True
