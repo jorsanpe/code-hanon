@@ -46,7 +46,7 @@ def update_statistics(statistics):
         _insert(cursor, ngram, "ngram", VALID)
     for expression in statistics.valid_expressions.most_common():
         _insert(cursor, expression, "expression", VALID)
-    for latency in statistics.latency_3grams.most_common():
+    for latency in statistics.latency_3grams:
         _insert_latency(cursor, latency)
     connection.commit()
     connection.close()
@@ -70,5 +70,5 @@ def _insert_latency(cursor, latency):
         return
     cursor.execute(
         f"INSERT INTO latencies (ngram, value, timestamp) VALUES (?, ?, ?)",
-        [ngram_id, latency[1]]
+        [ngram_id, latency[1], timestamp]
     )

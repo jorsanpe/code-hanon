@@ -24,7 +24,7 @@ class SessionStatistics:
         self.failed_expressions = Counter()
         self.valid_3grams = Counter()
         self.valid_expressions = Counter()
-        self.latency_3grams = Counter()
+        self.latency_3grams = []
         self.challenge_string = None
         self.generator_expression = None
         self.challenge_ok = True
@@ -49,7 +49,7 @@ class SessionStatistics:
             self.ok_chars[pos] = True
         if self.ok_including(pos):
             self.valid_3grams[self.ngram_at(pos)] += 1
-            self.latency_3grams[self.ngram_at(pos)] += int(self.latency_at(pos) * 1000)
+            self.latency_3grams.append([self.ngram_at(pos), int(self.latency_at(pos) * 1000)])
 
     def invalid_input(self, pos):
         now = perf_counter()
