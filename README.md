@@ -11,6 +11,8 @@
 
 ## Usage
 
+For the time being, the usage of this tool is entirely through the source code. 
+
 1.  **Clone the repository:**
 
 ```bash
@@ -23,17 +25,25 @@ git clone <repository_url>
 cd code-hanon
 ```
 
+1. **Create virtual environment and install dependencies**
+
+```bash
+virtualenv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
 1. **Use the `hanon.py` script to invoke the application**
 
 ```bash
-python3 hanon.py <command> [args]
+./hanon.py <command> [args]
 ```
 
 ## Available Commands
 
 - **Analyze**
 ```bash
-python3 hanon.py analyze -l <language> -o <output_directory> <directories_to_analyze>
+./hanon.py analyze -l <language> -o <output_directory> <directories_to_analyze>
 ```
 
 *   `-l, --language`: Specify the programming language to analyze (e.g., Python).
@@ -42,7 +52,7 @@ python3 hanon.py analyze -l <language> -o <output_directory> <directories_to_ana
 
 - **Practice**
 ```bash
-python3 hanon.py practice -i <input_directory> -c <challenge_count>
+./hanon.py practice -i <input_directory> -c <challenge_count>
 ```
 
 *   `-i, --input-directory`: (Optional) Specify the directory containing the generated practice exercises (default is "exercises").

@@ -1,0 +1,10 @@
+astunparse>=1.6
+click>=8.1
+joblib>=1.4
+nltk>=3.8
+regex>=2024.5
+six>=1.16
+tabulate>=0.9
+termcolor>=2.4
+tqdm>=4.66
+wheel>=0.43
