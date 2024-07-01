@@ -1,8 +1,7 @@
 import sqlite3
 import time
 
-
-DATABASE_FILENAME = "statistics/statistics.db"
+DATABASE_FILENAME = "statistics.db"
 FAILED = "KO"
 VALID = "OK"
 
@@ -72,3 +71,40 @@ def _insert_latency(cursor, latency):
         f"INSERT INTO latencies (ngram, value, timestamp) VALUES (?, ?, ?)",
         [ngram_id, latency[1], timestamp]
     )
+
+
+def all_statistics():
+    connection = sqlite3.connect(DATABASE_FILENAME)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    rows = cursor.execute(
+        f'SELECT ngram, value, status, timestamp FROM ngrams ORDER BY timestamp ASC'
+    ).fetchall()
+    ngrams = [{
+        'ngram': row['ngram'],
+        'value': row['value'],
+        'status': row['status'],
+        'timestamp': row['timestamp']
+    } for row in rows]
+
+    rows = cursor.execute(
+        f'SELECT expression, value, status, timestamp FROM expressions ORDER BY timestamp ASC'
+    ).fetchall()
+    expressions = [{
+        'expression': row['expression'],
+        'value': row['value'],
+        'status': row['status'],
+        'timestamp': row['timestamp']
+    } for row in rows]
+
+    rows = cursor.execute(
+        f'SELECT ngram, value, timestamp FROM latencies ORDER BY timestamp ASC'
+    ).fetchall()
+    latencies = [{
+        'ngram': row['ngram'],
+        'value': row['value'],
+        'timestamp': row['timestamp']
+    } for row in rows]
+
+    return [ngrams, expressions, latencies]

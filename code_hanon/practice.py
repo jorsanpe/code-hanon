@@ -123,7 +123,7 @@ class PracticeSession:
         try:
             with open(filename, "r") as stream:
                 lines = stream.readlines()
-                return [line.strip() for line in lines if not line.startswith("#")]
+                return [line.strip() for line in lines]
         except FileNotFoundError:
             print(f"Error: The file '{filename}' was not found in the input directory")
             sys.exit(1)
