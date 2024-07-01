@@ -87,7 +87,6 @@ class SessionStatistics:
         return self.challenge_string[pos] if pos > 0 else "$"
 
     def challenge_end(self):
-        now = perf_counter()
         if self.challenge_ok:
             self.valid_expressions[self.generator_expression] += 1
         else:
@@ -96,7 +95,6 @@ class SessionStatistics:
     def print(self):
         print("Statistics")
         total_strokes = self.valid_strokes + self.invalid_strokes
-        print(self.failed_3grams.most_common(2))
         worst_sequences = [f'"{"".join(ngram[0][0])}"' for ngram in self.failed_3grams.most_common(2)]
         worst_expressions = [f'"{"".join(expression[0])}"' for expression in self.failed_expressions.most_common(2)]
         rows = [
@@ -195,9 +193,10 @@ def start(input_directory, count):
 
         while True:
             char = getch()
-            if char == "\x03":
+            if is_ctrl_c(char):
+                session.finish()
                 sys.exit(1)
-            if char == "\x7f":
+            if is_backspace(char):
                 if pos > 0:
                     pos -= 1
                     sys.stdout.write(f"\b{colored(challenge_string[pos], 'light_grey')}\b")
@@ -220,3 +219,11 @@ def start(input_directory, count):
                 session.challenge_end()
                 break
     session.finish()
+
+
+def is_backspace(char):
+    return char == "\x7f"
+
+
+def is_ctrl_c(char):
+    return char == "\x03"
