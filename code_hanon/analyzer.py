@@ -24,13 +24,17 @@ def analyze(language, directories, output):
     for directory in directories:
         files = functools.reduce(lambda v, e: v + list(Path(directory).rglob(e)), analysis.extensions, [])
         for path in files:
-            with open(path, 'r') as stream:
-                payload = stream.read()
-            _analyze(payload, analysis)
+            try:
+                with open(path, 'r', errors='ignore') as stream:
+                    payload = stream.read()
+                _analyze(payload, language, analysis)
+            except UnicodeError as error:
+                print(f"error while decoding file `{path}`")
     _present(analysis, output)
 
 
-def _analyze(payload, analysis):
+def _analyze(payload, language, analysis):
+    payload = _remove_comments(payload, language)
     lines = payload.split('\n')
     for line in lines:
         compressed_line = line.strip()
@@ -43,6 +47,22 @@ def _analyze(payload, analysis):
 
         if _syntax_relevant(compressed_line):
             analysis.expressions[compressed_line] += 1
+
+
+def _remove_comments(payload, language):
+    def replacer(match):
+        s = match.group(0)
+        if s.startswith('/'):
+            return " "
+        else:
+            return s
+
+    lang = languages.supported[language]
+    if "comments" not in lang:
+        return payload
+
+    pattern = re.compile(lang["comments"], re.DOTALL | re.MULTILINE)
+    return re.sub(pattern, replacer, payload)
 
 
 def _replace_word(match, analysis):

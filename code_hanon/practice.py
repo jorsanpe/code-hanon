@@ -101,8 +101,8 @@ class SessionStatistics:
             [" Total strokes", "%d" % total_strokes],
             [" Valid strokes", "%d" % self.valid_strokes],
             [" Invalid strokes", "%d" % self.invalid_strokes],
-            [" Worst sequences", f"{", ".join(worst_sequences)}"],
-            [" Worst expressions", f"{", ".join(worst_expressions)}"],
+            [" Worst sequences", f"{', '.join(worst_sequences)}"],
+            [" Worst expressions", f"{', '.join(worst_expressions)}"],
             [" Total time (s)", "%.2f" % self.total_time_per_char],
         ]
         print(tabulate(rows))
@@ -183,7 +183,7 @@ def start(input_directory, count):
             if char == "\x7f":
                 if pos > 0:
                     pos -= 1
-                    sys.stdout.write(f"\b{colored(challenge_string[pos], "light_grey")}\b")
+                    sys.stdout.write(f"\b{colored(challenge_string[pos], 'light_grey')}\b")
             elif char == challenge_string[pos]:
                 sys.stdout.write(colored(char, "green"))
                 ok_chars[pos] = True
