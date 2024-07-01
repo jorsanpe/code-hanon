@@ -12,13 +12,6 @@ def migrate():
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS ngrams("
         " ngram TEXT,"
-        " status TEXT,"
-        " value INTEGER DEFAULT 0,"
-        " timestamp INTEGER"
-        ")"
-    )
-    cursor.execute(
-        "CREATE TABLE IF NOT EXISTS expressions("
         " expression TEXT,"
         " status TEXT,"
         " value INTEGER DEFAULT 0,"
@@ -28,6 +21,7 @@ def migrate():
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS latencies("
         " ngram TEXT,"
+        " expression TEXT,"
         " value INTEGER DEFAULT 0,"
         " timestamp INTEGER"
         ")"
@@ -38,38 +32,40 @@ def update_statistics(statistics):
     connection = sqlite3.connect(DATABASE_FILENAME)
     cursor = connection.cursor()
     for ngram in statistics.failed_3grams.most_common():
-        _insert(cursor, ngram, "ngram", FAILED)
-    for expression in statistics.failed_expressions.most_common():
-        _insert(cursor, expression, "expression", FAILED)
+        _insert(cursor, ngram, FAILED)
     for ngram in statistics.valid_3grams.most_common():
-        _insert(cursor, ngram, "ngram", VALID)
-    for expression in statistics.valid_expressions.most_common():
-        _insert(cursor, expression, "expression", VALID)
+        _insert(cursor, ngram, VALID)
     for latency in statistics.latency_3grams:
         _insert_latency(cursor, latency)
     connection.commit()
     connection.close()
 
 
-def _insert(cursor, element, root, status):
-    timestamp = int(time.time())
-    expression_id = "".join(element[0])
-    if expression_id.startswith("$$"):
+def _insert(cursor, element, status):
+    ngram_id = "".join(element[0][0])
+    if ngram_id.startswith("$$"):
         return
+    expression = element[0][1]
+    value = element[1]
+    timestamp = int(time.time())
     cursor.execute(
-        f"INSERT INTO {root}s ({root}, status, value, timestamp) VALUES (?, ?, ?, ?)",
-        [expression_id, status, element[1], timestamp]
+        f"INSERT INTO ngrams (ngram, expression, status, value, timestamp) VALUES (?, ?, ?, ?, ?)",
+        [ngram_id, expression, status, value, timestamp]
     )
 
 
 def _insert_latency(cursor, latency):
-    ngram_id = "".join(latency[0])
+    ngram_id = "".join(latency[0][0])
+    if ngram_id.startswith("$$"):
+        return
+    expression = latency[0][1]
+    value = latency[1]
     timestamp = int(time.time())
     if ngram_id.startswith("$$"):
         return
     cursor.execute(
-        f"INSERT INTO latencies (ngram, value, timestamp) VALUES (?, ?, ?)",
-        [ngram_id, latency[1], timestamp]
+        f"INSERT INTO latencies (ngram, expression, value, timestamp) VALUES (?, ?, ?, ?)",
+        [ngram_id, expression, value, timestamp]
     )
 
 
@@ -79,19 +75,10 @@ def all_statistics():
     cursor = connection.cursor()
 
     rows = cursor.execute(
-        f'SELECT ngram, value, status, timestamp FROM ngrams ORDER BY timestamp ASC'
+        f'SELECT ngram, expression, value, status, timestamp FROM ngrams ORDER BY timestamp ASC'
     ).fetchall()
     ngrams = [{
         'ngram': row['ngram'],
-        'value': row['value'],
-        'status': row['status'],
-        'timestamp': row['timestamp']
-    } for row in rows]
-
-    rows = cursor.execute(
-        f'SELECT expression, value, status, timestamp FROM expressions ORDER BY timestamp ASC'
-    ).fetchall()
-    expressions = [{
         'expression': row['expression'],
         'value': row['value'],
         'status': row['status'],
@@ -99,12 +86,13 @@ def all_statistics():
     } for row in rows]
 
     rows = cursor.execute(
-        f'SELECT ngram, value, timestamp FROM latencies ORDER BY timestamp ASC'
+        f'SELECT ngram, expression, value, timestamp FROM latencies ORDER BY timestamp ASC'
     ).fetchall()
     latencies = [{
         'ngram': row['ngram'],
+        'expression': row['expression'],
         'value': row['value'],
         'timestamp': row['timestamp']
     } for row in rows]
 
-    return [ngrams, expressions, latencies]
+    return [ngrams, latencies]

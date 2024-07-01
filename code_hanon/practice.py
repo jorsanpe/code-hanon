@@ -48,8 +48,8 @@ class SessionStatistics:
         if self.ok_chars[pos] is None:
             self.ok_chars[pos] = True
         if self.ok_including(pos):
-            self.valid_3grams[self.ngram_at(pos)] += 1
-            self.latency_3grams.append([self.ngram_at(pos), int(self.latency_at(pos) * 1000)])
+            self.valid_3grams[self.ngram_key(pos)] += 1
+            self.latency_3grams.append([self.ngram_key(pos), int(self.latency_at(pos) * 1000)])
 
     def invalid_input(self, pos):
         now = perf_counter()
@@ -59,8 +59,11 @@ class SessionStatistics:
         if self.ok_chars[pos] is None:
             self.ok_chars[pos] = False
         if self.ok_upto(pos):
-            self.failed_3grams[self.ngram_at(pos)] += 1
+            self.failed_3grams[self.ngram_key(pos)] += 1
         self.challenge_ok = False
+
+    def ngram_key(self, pos):
+        return tuple([self.ngram_at(pos), self.generator_expression])
 
     def latency_upto(self, pos):
         return self.latency_at(pos-2) + self.latency_at(pos-1) + self.latency_at(pos)
@@ -93,7 +96,8 @@ class SessionStatistics:
     def print(self):
         print("Statistics")
         total_strokes = self.valid_strokes + self.invalid_strokes
-        worst_sequences = [f'"{"".join(ngram[0])}"' for ngram in self.failed_3grams.most_common(2)]
+        print(self.failed_3grams.most_common(2))
+        worst_sequences = [f'"{"".join(ngram[0][0])}"' for ngram in self.failed_3grams.most_common(2)]
         worst_expressions = [f'"{"".join(expression[0])}"' for expression in self.failed_expressions.most_common(2)]
         rows = [
             [" Strokes per minute", "%.2f" % ((total_strokes * 60) / self.total_time_per_char)],
@@ -118,6 +122,8 @@ class PracticeSession:
         self.generator_words = self.read_generator_file(f"{input_directory}/words.txt")
         self.generator_names = self.read_generator_file(f"{input_directory}/names.txt")
         self.statistics = SessionStatistics()
+        self.current_challenge = ""
+        self.next_challenge = self.generate_challenge_string()
 
     def read_generator_file(self, filename):
         try:
@@ -128,13 +134,17 @@ class PracticeSession:
             print(f"Error: The file '{filename}' was not found in the input directory")
             sys.exit(1)
 
+    def next(self):
+        self.current_challenge = self.next_challenge
+        self.next_challenge = self.generate_challenge_string()
+        return self.current_challenge
+
     def generate_challenge_string(self):
         generator_expression = random.sample(self.generator_expressions, 1)[0]
         challenge_string = re.sub(r'W', lambda x: random.sample(self.generator_words, 1)[0], generator_expression)
         challenge_string = re.sub(r'N', lambda x: random.sample(self.generator_names, 1)[0], challenge_string)
         challenge_string = re.sub(r'1', lambda x: str(random.randint(0, 99)), challenge_string)
-        self.statistics.start(generator_expression, challenge_string)
-        return challenge_string
+        return generator_expression, challenge_string
 
     def challenge_ok(self):
         return self.statistics.challenge_ok
@@ -169,9 +179,16 @@ def start(input_directory, count):
     session = PracticeSession(input_directory)
 
     for i in range(count):
-        challenge_string = session.generate_challenge_string()
-        text = colored(challenge_string, "light_grey")
-        sys.stdout.write(text + "\r")
+        generator_expression, challenge_string = session.next()
+        session.statistics.start(generator_expression, challenge_string)
+
+        if i < (count-1):
+            text = colored(f"{challenge_string}\n{session.next_challenge[1]}", "light_grey")
+            sys.stdout.write(text + "\r\033[1A")
+        else:
+            text = colored(f"{challenge_string}", "light_grey")
+            sys.stdout.write(text + "\r")
+
         sys.stdout.flush()
         ok_chars = [False] * len(challenge_string)
         pos = 0
