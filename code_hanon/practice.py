@@ -1,4 +1,18 @@
-#!/usr/bin/env python3
+# Copyright (C) Jordi Sánchez 2024
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import random
 import re
 import sys
@@ -21,19 +35,19 @@ class SessionStatistics:
         self.ok_chars = []
         self.latency_per_char = []
         self.failed_3grams = Counter()
-        self.failed_expressions = Counter()
+        self.failed_patterns = Counter()
         self.valid_3grams = Counter()
-        self.valid_expressions = Counter()
+        self.valid_patterns = Counter()
         self.latency_3grams = []
         self.challenge_string = None
-        self.generator_expression = None
+        self.generator_pattern = None
         self.challenge_ok = True
 
-    def start(self, generator_expression, challenge_string):
+    def start(self, generator_pattern, challenge_string):
         self.challenge_start = perf_counter()
         self.before = perf_counter()
         self.challenge_string = challenge_string
-        self.generator_expression = generator_expression
+        self.generator_pattern = generator_pattern
         self.ok_chars = [None] * len(challenge_string)
         self.latency_per_char = [0] * len(challenge_string)
         self.challenge_ok = True
@@ -63,7 +77,7 @@ class SessionStatistics:
         self.challenge_ok = False
 
     def ngram_key(self, pos):
-        return tuple([self.ngram_at(pos), self.generator_expression])
+        return tuple([self.ngram_at(pos), self.generator_pattern])
 
     def latency_upto(self, pos):
         return self.latency_at(pos-2) + self.latency_at(pos-1) + self.latency_at(pos)
@@ -88,15 +102,15 @@ class SessionStatistics:
 
     def challenge_end(self):
         if self.challenge_ok:
-            self.valid_expressions[self.generator_expression] += 1
+            self.valid_patterns[self.generator_pattern] += 1
         else:
-            self.failed_expressions[self.generator_expression] += 1
+            self.failed_patterns[self.generator_pattern] += 1
 
     def print(self):
         print("Statistics")
         total_strokes = self.valid_strokes + self.invalid_strokes
         worst_sequences = [f'"{"".join(ngram[0][0])}"' for ngram in self.failed_3grams.most_common(2)]
-        worst_expressions = [f'"{"".join(expression[0])}"' for expression in self.failed_expressions.most_common(2)]
+        worst_patterns = [f'"{"".join(pattern[0])}"' for pattern in self.failed_patterns.most_common(2)]
         rows = [
             [" Strokes per minute", "%.2f" % ((total_strokes * 60) / self.total_time_per_char)],
             [" Accuracy", "%.2f %%" % ((float(self.valid_strokes) * 100) / total_strokes)],
@@ -104,7 +118,7 @@ class SessionStatistics:
             [" Valid strokes", "%d" % self.valid_strokes],
             [" Invalid strokes", "%d" % self.invalid_strokes],
             [" Worst sequences", f"{', '.join(worst_sequences)}"],
-            [" Worst expressions", f"{', '.join(worst_expressions)}"],
+            [" Worst patterns", f"{', '.join(worst_patterns)}"],
             [" Total time (s)", "%.2f" % self.total_time_per_char],
         ]
         print(tabulate(rows))
@@ -116,7 +130,7 @@ class PracticeSession:
         self.valid_strokes = 0
         self.invalid_strokes = 0
         self.total_time = 0.0
-        self.generator_expressions = self.read_generator_file(f"{input_directory}/expressions.txt")
+        self.generator_patterns = self.read_generator_file(f"{input_directory}/patterns.txt")
         self.generator_words = self.read_generator_file(f"{input_directory}/words.txt")
         self.generator_names = self.read_generator_file(f"{input_directory}/names.txt")
         self.statistics = SessionStatistics()
@@ -138,11 +152,11 @@ class PracticeSession:
         return self.current_challenge
 
     def generate_challenge_string(self):
-        generator_expression = random.sample(self.generator_expressions, 1)[0]
-        challenge_string = re.sub(r'W', lambda x: random.sample(self.generator_words, 1)[0], generator_expression)
+        generator_pattern = random.sample(self.generator_patterns, 1)[0]
+        challenge_string = re.sub(r'W', lambda x: random.sample(self.generator_words, 1)[0], generator_pattern)
         challenge_string = re.sub(r'N', lambda x: random.sample(self.generator_names, 1)[0], challenge_string)
         challenge_string = re.sub(r'1', lambda x: str(random.randint(0, 99)), challenge_string)
-        return generator_expression, challenge_string
+        return generator_pattern, challenge_string
 
     def challenge_ok(self):
         return self.statistics.challenge_ok
@@ -177,8 +191,8 @@ def start(input_directory, count):
     session = PracticeSession(input_directory)
 
     for i in range(count):
-        generator_expression, challenge_string = session.next()
-        session.statistics.start(generator_expression, challenge_string)
+        generator_pattern, challenge_string = session.next()
+        session.statistics.start(generator_pattern, challenge_string)
 
         if i < (count-1):
             text = colored(f"{challenge_string}\n{session.next_challenge[1]}", "light_grey")

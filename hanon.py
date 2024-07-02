@@ -1,4 +1,19 @@
 #!/usr/bin/env python3
+# Copyright (C) Jordi Sánchez 2024
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import argparse
 import sys
 from code_hanon import analyzer
@@ -10,15 +25,19 @@ from code_hanon import statistics_presenter
 def print_help():
     help_text = 'Usage: code-hanon <command> [args]'
     help_text += '\n\nAvailable commands:'
-    help_text += f'\n\t{"analyze":<20} Analyze a codebase and extract generator expressions'
-    help_text += f'\n\t{"practice":<20} Practice coding using generator expressions'
+    help_text += f'\n\t{"analyze":<20} Analyze a codebase and extract generator patterns'
+    help_text += f'\n\t{"practice":<20} Practice coding using generator patterns'
     help_text += f'\n\t{"stats":<20} Show your performance statistics'
     print(help_text)
 
 
 def analyze(argv):
-    options = argparse.ArgumentParser(description='analyze frequency of code expressions by line')
-    options.add_argument('-l', '--language', action='store', choices=languages.supported.keys())
+    options = argparse.ArgumentParser(description='analyze frequency of code patterns by line')
+    options.add_argument(
+        '-l', '--language',
+        action='store',
+        choices=languages.supported.keys()
+    )
     options.add_argument(
         '-o', '--output',
         default="exercises",
@@ -33,7 +52,7 @@ def analyze(argv):
 
 
 def start_practice(argv):
-    options = argparse.ArgumentParser(description='practice coding based on generator expressions')
+    options = argparse.ArgumentParser(description='practice coding based on generator patterns')
     options.add_argument(
         '-i', '--input-directory',
         default="exercises",

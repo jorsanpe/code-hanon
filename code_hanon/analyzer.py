@@ -1,3 +1,18 @@
+# Copyright (C) Jordi Sánchez 2024
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 from pathlib import Path
 from collections import Counter
@@ -10,7 +25,7 @@ import functools
 
 class Analysis:
     def __init__(self, language):
-        self.expressions = Counter()
+        self.patterns = Counter()
         self.words = Counter()
         self.names = Counter()
         self.extensions = languages.supported[language]["extensions"]
@@ -46,7 +61,7 @@ def _analyze(payload, language, analysis):
         compressed_line = compressed_line.replace("clas", "class")
 
         if _syntax_relevant(compressed_line):
-            analysis.expressions[compressed_line] += 1
+            analysis.patterns[compressed_line] += 1
 
 
 def _remove_comments(payload, language):
@@ -86,7 +101,7 @@ def _syntax_relevant(gram):
 
 def _present(analysis, output):
     os.makedirs(output, exist_ok=True)
-    _present_counter(analysis.expressions, f"{output}/expressions.txt", 25)
+    _present_counter(analysis.patterns, f"{output}/patterns.txt", 25)
     _present_counter(analysis.words, f"{output}/words.txt", 100)
     _present_counter(analysis.names, f"{output}/names.txt", 100)
 
