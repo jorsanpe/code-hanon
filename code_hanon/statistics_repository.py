@@ -19,28 +19,54 @@ import time
 DATABASE_FILENAME = "statistics.db"
 FAILED = "KO"
 VALID = "OK"
+DATABASE_TABLES = [
+    {
+        'name': 'ngrams',
+        'columns': {
+            'ngram': 'TEXT',
+            'pattern': 'TEXT',
+            'status': 'TEXT',
+            'value': 'INTEGER DEFAULT 0',
+            'timestamp': 'INTEGER',
+        }
+    },
+    {
+        'name': 'latencies',
+        'columns': {
+            'ngram': 'TEXT',
+            'pattern': 'TEXT',
+            'value': 'INTEGER DEFAULT 0',
+            'timestamp': 'INTEGER',
+        }
+    },
+]
 
 
-def migrate():
-    connection = sqlite3.connect(DATABASE_FILENAME)
-    cursor = connection.cursor()
-    cursor.execute(
-        "CREATE TABLE IF NOT EXISTS ngrams("
-        " ngram TEXT,"
-        " pattern TEXT,"
-        " status TEXT,"
-        " value INTEGER DEFAULT 0,"
-        " timestamp INTEGER"
-        ")"
-    )
-    cursor.execute(
-        "CREATE TABLE IF NOT EXISTS latencies("
-        " ngram TEXT,"
-        " pattern TEXT,"
-        " value INTEGER DEFAULT 0,"
-        " timestamp INTEGER"
-        ")"
-    )
+def prepare():
+    with sqlite3.connect(DATABASE_FILENAME) as connection:
+        cursor = connection.cursor()
+
+        for table in DATABASE_TABLES:
+            cursor.execute(
+                f"CREATE TABLE IF NOT EXISTS {table['name']}("
+                f"{','.join(f'{col} {typ}' for col, typ in table['columns'].items())}"
+                f")"
+            )
+            for col, typ in table['columns'].items():
+                _add_column_if_not_exists(cursor, 'ngrams', col, typ)
+
+
+def _add_column_if_not_exists(cursor, table_name, column_name, column_type):
+    cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+    if not cursor.fetchone():
+        return
+
+    cursor.execute(f"PRAGMA table_info('{table_name}')")
+    existing_columns = [column[1] for column in cursor.fetchall()]
+    if column_name in existing_columns:
+        return
+
+    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
 
 
 def update_statistics(statistics):
