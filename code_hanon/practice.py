@@ -32,22 +32,21 @@ def getch():
     return ch
 
 
-def start(input_directory, count):
+def start(input_directory, config):
     statistics_repository.prepare()
-    session = PracticeSession(input_directory)
+    session = PracticeSession(input_directory, config)
+    count = config['count']
 
-    for i in range(count):
-        challenge_string = session.next()
-
-        if i < (count-1):
-            text = colored(f"{challenge_string}\n{session.next_challenge.string}", "light_grey")
+    for challenge, next_challenge in session.challenges():
+        if next_challenge:
+            text = colored(f"{challenge.string}\n{next_challenge.string}", "light_grey")
             sys.stdout.write(text + "\r\033[1A")
         else:
-            text = colored(f"{challenge_string}", "light_grey")
+            text = colored(f"{challenge.string}", "light_grey")
             sys.stdout.write(text + "\r")
 
         sys.stdout.flush()
-        ok_chars = [False] * len(challenge_string)
+        ok_chars = [False] * len(challenge.string)
         pos = 0
 
         while True:
@@ -58,19 +57,19 @@ def start(input_directory, count):
             if is_backspace(char):
                 if pos > 0:
                     pos -= 1
-                    sys.stdout.write(f"\b{colored(challenge_string[pos], 'light_grey')}\b")
-            elif char == challenge_string[pos]:
+                    sys.stdout.write(f"\b{colored(challenge.string[pos], 'light_grey')}\b")
+            elif char == challenge.string[pos]:
                 sys.stdout.write(colored(char, "green"))
                 ok_chars[pos] = True
                 pos += 1
                 session.valid_input(pos-1)
             else:
-                sys.stdout.write(colored(challenge_string[pos], "red"))
+                sys.stdout.write(colored(challenge.string[pos], "red"))
                 pos += 1
                 session.invalid_input(pos-1)
             sys.stdout.flush()
 
-            if pos == len(challenge_string):
+            if pos == len(challenge.string):
                 if session.challenge_ok():
                     print(colored(" ✓", "green"))
                 else:

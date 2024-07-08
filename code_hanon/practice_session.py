@@ -11,7 +11,7 @@ Challenge = namedtuple('Challenge', ['pattern', 'string'])
 
 
 class PracticeSession:
-    def __init__(self, input_directory):
+    def __init__(self, input_directory, config):
         self.before = perf_counter()
         self.valid_strokes = 0
         self.invalid_strokes = 0
@@ -21,7 +21,8 @@ class PracticeSession:
         self.generator_names = self.read_generator_file(f"{input_directory}/names.txt")
         self.statistics = SessionStatistics()
         self.current_challenge = ""
-        self.next_challenge = self.generate_challenge()
+        self.config = config
+        self.failed_challenges = []
 
     def read_generator_file(self, filename):
         try:
@@ -32,11 +33,18 @@ class PracticeSession:
             print(f"Error: The file '{filename}' was not found in the input directory")
             sys.exit(1)
 
-    def next(self):
-        self.current_challenge = self.next_challenge
-        self.next_challenge = self.generate_challenge()
-        self.statistics.start(self.current_challenge.pattern, self.current_challenge.string)
-        return self.current_challenge.string
+    def challenges(self):
+        challenges = list(map(
+            lambda _: self.generate_challenge(),
+            range(self.config['count'])
+        ))
+        for challenge, next_challenge in zip(challenges, challenges[1:] + [None]):
+            self.statistics.start(challenge.pattern, challenge.string)
+            self.current_challenge = challenge
+            yield challenge, next_challenge
+        for challenge, next_challenge in zip(self.failed_challenges, self.failed_challenges[1:] + [None]):
+            for i in range(self.config['repeat_failures']):
+                yield challenge, next_challenge
 
     def generate_challenge(self):
         generator_pattern = random.sample(self.generator_patterns, 1)[0]
@@ -49,6 +57,8 @@ class PracticeSession:
         return self.statistics.challenge_ok
 
     def challenge_end(self):
+        if not self.challenge_ok():
+            self.failed_challenges.append(self.current_challenge)
         self.statistics.challenge_end()
 
     def valid_input(self, pos):
@@ -60,3 +70,4 @@ class PracticeSession:
     def finish(self):
         self.statistics.print()
         statistics_repository.update_statistics(self.statistics)
+

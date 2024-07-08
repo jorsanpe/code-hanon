@@ -16,6 +16,7 @@
 
 import argparse
 import sys
+import yaml
 from code_hanon import analyzer
 from code_hanon import languages
 from code_hanon import practice
@@ -31,7 +32,7 @@ def print_help():
     print(help_text)
 
 
-def analyze(argv):
+def analyze(argv, config):
     options = argparse.ArgumentParser(description='analyze frequency of code patterns by line')
     options.add_argument(
         '-l', '--language',
@@ -51,7 +52,7 @@ def analyze(argv):
     analyzer.analyze(args.language, args.directories, args.output)
 
 
-def start_practice(argv):
+def start_practice(argv, config):
     options = argparse.ArgumentParser(description='practice coding based on generator patterns')
     options.add_argument(
         '-i', '--input-directory',
@@ -59,20 +60,12 @@ def start_practice(argv):
         action='store',
         help="input directory from which to read the generator files (exercises.txt, words.txt and names.txt)"
     )
-    options.add_argument(
-        '-c', '--count',
-        default=25,
-        action='store',
-        type=int,
-        help="how many string challenges to generate for the exercise (default 25)"
-    )
-
     args = options.parse_args(argv)
 
-    practice.start(args.input_directory, int(args.count))
+    practice.start(args.input_directory, config)
 
 
-def show_stats(argv):
+def show_stats(argv, config):
     options = argparse.ArgumentParser(description='show your current performance statistics')
     options.add_argument(
         '-s', '--sort-by',
@@ -103,9 +96,15 @@ def main():
         print_help()
         sys.exit(0)
 
+    with open("config.yml") as stream:
+        try:
+            config = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+
     command_to_execute = args.command[0]
     command_arguments = args.command[1:]
-    COMMANDS[command_to_execute](command_arguments)
+    COMMANDS[command_to_execute](command_arguments, config.get(command_to_execute, {}))
 
 
 def argument_parser():
