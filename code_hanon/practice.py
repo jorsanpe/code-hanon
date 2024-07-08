@@ -35,18 +35,16 @@ def getch():
 def start(input_directory, config):
     statistics_repository.prepare()
     session = PracticeSession(input_directory, config)
-    count = config['count']
 
     for challenge, next_challenge in session.challenges():
         if next_challenge:
-            text = colored(f"{challenge.string}\n{next_challenge.string}", "light_grey")
+            text = colored(f"{challenge.display_string}\n{next_challenge.display_string}", "light_grey")
             sys.stdout.write(text + "\r\033[1A")
         else:
-            text = colored(f"{challenge.string}", "light_grey")
+            text = colored(f"{challenge.display_string}", "light_grey")
             sys.stdout.write(text + "\r")
 
         sys.stdout.flush()
-        ok_chars = [False] * len(challenge.string)
         pos = 0
 
         while True:
@@ -59,14 +57,13 @@ def start(input_directory, config):
                     pos -= 1
                     sys.stdout.write(f"\b{colored(challenge.string[pos], 'light_grey')}\b")
             elif char == challenge.string[pos]:
-                sys.stdout.write(colored(char, "green"))
-                ok_chars[pos] = True
+                sys.stdout.write(colored(challenge.display_string[pos], "green"))
+                session.valid_input(pos)
                 pos += 1
-                session.valid_input(pos-1)
             else:
-                sys.stdout.write(colored(challenge.string[pos], "red"))
+                sys.stdout.write(colored(challenge.display_string[pos], "red"))
+                session.invalid_input(pos)
                 pos += 1
-                session.invalid_input(pos-1)
             sys.stdout.flush()
 
             if pos == len(challenge.string):
@@ -85,3 +82,7 @@ def is_backspace(char):
 
 def is_ctrl_c(char):
     return char == "\x03"
+
+
+def is_enter(char):
+    return char == "\x0d"

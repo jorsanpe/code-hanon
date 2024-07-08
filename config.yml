@@ -1,6 +1,6 @@
-practice:                 # Configuration for the `practice` command
+practice: # Configuration for the `practice` command
   count: 3                # Number of challenges for the session
   strict: false           # TODO: All characters must be written correctly before passing the challenge
-  press_enter: false      # TODO: Do not advance to the next challenge until pressing enter
-  repeat_failures: 5      # TODO: Repeat failed challenges this amount of times
+  press_enter: true       # Do not advance to the next challenge until pressing enter
+  repeat_failures: 5      # Repeat failed challenges this amount of times
   record_failures: true   # TODO: Record failed challenges
