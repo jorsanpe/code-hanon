@@ -2,7 +2,6 @@ import random
 import re
 import sys
 from collections import namedtuple
-from time import perf_counter
 from code_hanon.session_statistics import SessionStatistics
 from code_hanon import statistics_repository
 
@@ -12,10 +11,8 @@ Challenge = namedtuple('Challenge', ['pattern', 'string', 'display_string'])
 
 class PracticeSession:
     def __init__(self, input_directory, config):
-        self.before = perf_counter()
         self.valid_strokes = 0
         self.invalid_strokes = 0
-        self.total_time = 0.0
         self.generator_patterns = self.read_generator_file(f"{input_directory}/patterns.txt")
         self.generator_words = self.read_generator_file(f"{input_directory}/words.txt")
         self.generator_names = self.read_generator_file(f"{input_directory}/names.txt")
@@ -44,7 +41,7 @@ class PracticeSession:
             yield from self._yield_challenge(challenge, next_challenge)
 
     def _yield_challenge(self, challenge, next_challenge):
-        self.statistics.start(challenge.pattern, challenge.string)
+        self.statistics.start(challenge.pattern, challenge.display_string)
         self.current_challenge = challenge
         yield challenge, next_challenge
 

@@ -61,9 +61,10 @@ def start(input_directory, config):
                 session.valid_input(pos)
                 pos += 1
             else:
-                sys.stdout.write(colored(challenge.display_string[pos], "red"))
-                session.invalid_input(pos)
-                pos += 1
+                if pos > 0:
+                    sys.stdout.write(colored(challenge.display_string[pos], "red"))
+                    session.invalid_input(pos)
+                    pos += 1
             sys.stdout.flush()
 
             if pos == len(challenge.string):

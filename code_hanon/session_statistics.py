@@ -9,7 +9,6 @@ class SessionStatistics:
         self.valid_strokes = 0
         self.invalid_strokes = 0
         self.total_time_per_char = 0.0
-        self.challenge_start = perf_counter()
         self.before = perf_counter()
         self.ok_chars = []
         self.latency_per_char = []
@@ -23,8 +22,6 @@ class SessionStatistics:
         self.challenge_ok = True
 
     def start(self, generator_pattern, challenge_string):
-        self.challenge_start = perf_counter()
-        self.before = perf_counter()
         self.challenge_string = challenge_string
         self.generator_pattern = generator_pattern
         self.ok_chars = [None] * len(challenge_string)
@@ -32,6 +29,9 @@ class SessionStatistics:
         self.challenge_ok = True
 
     def valid_input(self, pos):
+        if pos == 0:
+            self.before = perf_counter()
+            return
         now = perf_counter()
         elapsed_time = now - self.before
         self.before = now
